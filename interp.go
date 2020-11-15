@@ -46,7 +46,9 @@ func (m *Machine) SetMemory(ptr uint64, data []byte) {
 func (m *Machine) Run(arg int64, debug bool) int64 {
 	m.registers[asm.R1] = uint64(arg)
 	for !m.stopped {
-		if debug { fmt.Print(m) }
+		if debug {
+			fmt.Print(m)
+		}
 		m.Step()
 	}
 	return int64(m.registers[asm.R0])
@@ -146,12 +148,13 @@ func (m *Machine) swap(instr *asm.Instruction) {
 	v := m.registers[instr.Dst]
 	switch instr.Constant {
 	case 16:
-		m.registers[instr.Dst] = uint64((uint16(v) & 0x00FF << 8) | (uint16(v) & 0xFF00) >> 8)
+		m.registers[instr.Dst] = uint64((uint16(v) & 0x00FF << 8) | (uint16(v)&0xFF00)>>8)
 	case 32:
-		m.registers[instr.Dst] = uint64((uint32(v) & 0x000000FF << 24) | (uint32(v) & 0x0000FF00) << 8 | (uint32(v) & 0x00FF0000) >> 8 | (uint32(v) & 0xFF000000) >> 24)
+		m.registers[instr.Dst] = uint64((uint32(v) & 0x000000FF << 24) | (uint32(v)&0x0000FF00)<<8 | (uint32(v)&0x00FF0000)>>8 | (uint32(v)&0xFF000000)>>24)
 	case 64:
 		panic("TODO Swap 64")
-	default: panic("bad endian")
+	default:
+		panic("bad endian")
 	}
 
 }
@@ -195,7 +198,7 @@ func (m *Machine) alu(instr *asm.Instruction) {
 	}
 	if op.Class() == asm.ALUClass {
 		m.registers[instr.Dst] &= 0x00000000FFFFFFFF
-        }
+	}
 }
 
 func (m *Machine) call(fn asm.BuiltinFunc) {

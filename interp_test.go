@@ -1,9 +1,9 @@
 package interp
 
 import (
+	"fmt"
 	"github.com/cilium/ebpf/asm"
 	"testing"
-	"fmt"
 )
 
 func TestLoadStoreFuns(t *testing.T) {
@@ -28,15 +28,15 @@ func TestLoadStoreFuns(t *testing.T) {
 	}
 
 	// FIXME: don't assume little endian.
-        m.store(0 , 0xEF, asm.Byte)
-        m.store(1, 0xCD, asm.Byte)
-        m.store(2, 0x89AB, asm.Half)
-        m.store(4, 0x0123_4567, asm.Word)
+	m.store(0, 0xEF, asm.Byte)
+	m.store(1, 0xCD, asm.Byte)
+	m.store(2, 0x89AB, asm.Half)
+	m.store(4, 0x0123_4567, asm.Word)
 
 	w = 0x01234567_89ABCDEF
-        if l := m.load(0, asm.DWord); l != w {
+	if l := m.load(0, asm.DWord); l != w {
 		t.Errorf("expected %x, got %x", w, l)
-        }
+	}
 }
 
 func TestLoadImm(t *testing.T) {
@@ -59,7 +59,7 @@ func TestLoadImm(t *testing.T) {
 	if m.registers[asm.R2] != 0x0123_ABCD {
 		t.Errorf("LoadImm32 fail")
 	}
-	if m.registers[asm.R3] != 0x0123_4567_89AB_CDEF{
+	if m.registers[asm.R3] != 0x0123_4567_89AB_CDEF {
 		t.Errorf("LoadImm64 fail")
 	}
 }
@@ -74,7 +74,7 @@ func TestLoadAbs(t *testing.T) {
 	m.StoreWord(8, 0xAAAA_BBBB_CCCC_DDDD)
 	m.Run(0)
 
-        // In memory (little endian):
+	// In memory (little endian):
 	// 3333 2222 1111 0000 DDDD CCCC BBBB AAAA
 	//           ^^^^^^^^^^^^^^^^^^^
 	expected := uint64(0xCCCC_DDDD_0000_1111)
@@ -110,8 +110,7 @@ func TestALU(t *testing.T) {
 	m := NewMachine(instrs)
 	m.Run(0)
 
-	var expected uint64 =
-	  (((((((((0xfefefefc + 0xc0c0c0c1 - 0xc0c0) * 2) / 4) >> 3) << 2) % 0xfefefe) >> 2) & 0xababab) ^ 0x3f3f3f) | 0xff0000
+	var expected uint64 = (((((((((0xfefefefc + 0xc0c0c0c1 - 0xc0c0) * 2) / 4) >> 3) << 2) % 0xfefefe) >> 2) & 0xababab) ^ 0x3f3f3f) | 0xff0000
 
 	if m.registers[asm.R1] != expected {
 		t.Errorf("TestALU fail: expected %x, got %x", expected, m.registers[asm.R0])
@@ -119,7 +118,7 @@ func TestALU(t *testing.T) {
 }
 
 func TestJump(t *testing.T) {
- 	// TODO not complete	
+	// TODO not complete
 	instrs := []asm.Instruction{
 		asm.Ja.Label("skip"),
 		asm.Return(),
@@ -161,11 +160,10 @@ func TestJump(t *testing.T) {
 	m := NewMachine(instrs)
 	m.Run(0)
 
-	if (m.registers[asm.R0] != 0x1234) {
+	if m.registers[asm.R0] != 0x1234 {
 		t.Errorf("TestJump failed")
 	}
 }
-
 
 func fixupJumps(insns asm.Instructions) error {
 	// adapted from ebpf/linker.go.
