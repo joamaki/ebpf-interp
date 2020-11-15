@@ -48,7 +48,7 @@ func TestLoadImm(t *testing.T) {
 		asm.Return(),
 	}
 	m := NewMachine(instrs)
-	m.Run(0)
+	m.Run(0, false)
 
 	if m.registers[asm.R0] != 0xAB {
 		t.Errorf("LoadImm8 fail")
@@ -72,7 +72,7 @@ func TestLoadAbs(t *testing.T) {
 	m := NewMachine(instrs)
 	m.StoreWord(0, 0x0000_1111_2222_3333)
 	m.StoreWord(8, 0xAAAA_BBBB_CCCC_DDDD)
-	m.Run(0)
+	m.Run(0, false)
 
 	// In memory (little endian):
 	// 3333 2222 1111 0000 DDDD CCCC BBBB AAAA
@@ -85,8 +85,7 @@ func TestLoadAbs(t *testing.T) {
 }
 
 func TestALU(t *testing.T) {
-	// TODO: tests aren't very principled. Neg not tested properly. Swap missing.
-	// Sign extend of ArSh not tested.
+	// TODO: tests aren't very principled. Neg not tested properly.
 	instrs := []asm.Instruction{
 		asm.LoadImm(asm.R0, 0xfefefefc, asm.DWord),
 		asm.LoadImm(asm.R1, 0xc0c0c0c1, asm.DWord),
@@ -105,14 +104,53 @@ func TestALU(t *testing.T) {
 		asm.And.Imm(asm.R1, 0xababab),
 		asm.Xor.Imm(asm.R1, 0x3f3f3f),
 		asm.Or.Imm(asm.R1, 0xff0000),
+		asm.HostTo(asm.BE, asm.R1, asm.DWord),
+		asm.HostTo(asm.BE, asm.R1, asm.DWord),
 		asm.Return(),
 	}
 	m := NewMachine(instrs)
-	m.Run(0)
+	m.Run(0, false)
 
 	var expected uint64 = (((((((((0xfefefefc + 0xc0c0c0c1 - 0xc0c0) * 2) / 4) >> 3) << 2) % 0xfefefe) >> 2) & 0xababab) ^ 0x3f3f3f) | 0xff0000
 
 	if m.registers[asm.R1] != expected {
+		t.Errorf("TestALU fail: expected %x, got %x", expected, m.registers[asm.R0])
+	}
+}
+
+func TestALU32(t *testing.T) {
+	// TODO: tests aren't very principled. Neg not tested properly.
+	maxInt32 := int32(^uint32(0) >> 1)
+	instrs := []asm.Instruction{
+		asm.LoadImm(asm.R0, 0xfefefc, asm.Word),
+		asm.LoadImm(asm.R1, 0xc0c0c1, asm.Word),
+		asm.Add.Reg32(asm.R0, asm.R1),
+		asm.Sub.Imm32(asm.R0, 0xc0c0),
+		asm.LoadImm(asm.R2, 2, asm.Word),
+		asm.Mul.Reg32(asm.R0, asm.R2),
+		asm.Div.Imm32(asm.R0, 4),
+		asm.RSh.Imm32(asm.R0, 3),
+		asm.LSh.Imm32(asm.R0, 2),
+		asm.Neg.Imm32(asm.R0, 0),
+		asm.Neg.Imm32(asm.R0, 0),
+		asm.Mod.Imm32(asm.R0, 0xfefefe),
+		asm.Mov.Reg32(asm.R1, asm.R0),
+		asm.ArSh.Imm32(asm.R1, 2),
+		asm.And.Imm32(asm.R1, 0xababab),
+		asm.Xor.Imm32(asm.R1, 0x3f3f3f),
+		asm.Or.Imm32(asm.R1, 0xff0000),
+		asm.Add.Imm32(asm.R1, maxInt32),
+		asm.Add.Imm32(asm.R1, maxInt32),
+		asm.HostTo(asm.BE, asm.R1, asm.Word),
+		asm.HostTo(asm.BE, asm.R1, asm.Word),
+		asm.Return(),
+	}
+	m := NewMachine(instrs)
+	m.Run(0, false)
+
+	var expected uint32 = ((((((((((0xfefefc + 0xc0c0c1 - 0xc0c0) * 2) / 4) >> 3) << 2) % 0xfefefe) >> 2) & 0xababab) ^ 0x3f3f3f) | 0xff0000) + uint32(2*maxInt32)
+
+	if uint32(m.registers[asm.R1]) != expected {
 		t.Errorf("TestALU fail: expected %x, got %x", expected, m.registers[asm.R0])
 	}
 }
@@ -158,7 +196,7 @@ func TestJump(t *testing.T) {
 	}
 	fixupJumps(instrs)
 	m := NewMachine(instrs)
-	m.Run(0)
+	m.Run(0, false)
 
 	if m.registers[asm.R0] != 0x1234 {
 		t.Errorf("TestJump failed")

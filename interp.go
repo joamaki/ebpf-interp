@@ -97,11 +97,17 @@ func (m *Machine) Step() {
 			panic("bad store mode")
 		}
 
-	case asm.ALUClass, asm.ALU64Class:
+	case asm.ALUClass:
 		if op.ALUOp() == asm.Swap {
 			m.swap(&instr)
 		} else {
-			m.alu(&instr)
+			m.alu32(&instr)
+		}
+	case asm.ALU64Class:
+		if op.ALUOp() == asm.Swap {
+			m.swap(&instr)
+		} else {
+			m.alu64(&instr)
 		}
 
 	case asm.JumpClass:
@@ -148,24 +154,36 @@ func (m *Machine) swap(instr *asm.Instruction) {
 	v := m.registers[instr.Dst]
 	switch instr.Constant {
 	case 16:
-		m.registers[instr.Dst] = uint64((uint16(v) & 0x00FF << 8) | (uint16(v)&0xFF00)>>8)
+		m.registers[instr.Dst] =
+			uint64(
+				(uint16(v)&0x00FF)<<8 |
+					(uint16(v)&0xFF00)>>8)
 	case 32:
-		m.registers[instr.Dst] = uint64((uint32(v) & 0x000000FF << 24) | (uint32(v)&0x0000FF00)<<8 | (uint32(v)&0x00FF0000)>>8 | (uint32(v)&0xFF000000)>>24)
+		m.registers[instr.Dst] =
+			uint64(
+				(uint32(v)&0x000000FF)<<24 |
+					(uint32(v)&0x0000FF00)<<8 |
+					(uint32(v)&0x00FF0000)>>8 |
+					(uint32(v)&0xFF000000)>>24)
 	case 64:
-		panic("TODO Swap 64")
+		m.registers[instr.Dst] =
+			(v&0x00000000_000000FF)<<56 |
+				(v&0x00000000_0000FF00)<<40 |
+				(v&0x00000000_00FF0000)<<24 |
+				(v&0x00000000_FF000000)<<8 |
+				(v&0x000000FF_00000000)>>8 |
+				(v&0x0000FF00_00000000)>>24 |
+				(v&0x00FF0000_00000000)>>40 |
+				(v&0xFF000000_00000000)>>56
 	default:
 		panic("bad endian")
 	}
 
 }
 
-func (m *Machine) alu(instr *asm.Instruction) {
+func (m *Machine) alu64(instr *asm.Instruction) {
 	op := instr.OpCode
 	value := m.sourceValue(instr)
-	if op.Class() == asm.ALUClass {
-		// FIXME test that all 32bit ops work correctly.
-		value &= 0x00000000FFFFFFFF
-	}
 	switch op.ALUOp() {
 	case asm.Add:
 		m.registers[instr.Dst] += value
@@ -196,8 +214,41 @@ func (m *Machine) alu(instr *asm.Instruction) {
 	default:
 		panic("unhandled ALUOp: " + op.ALUOp().String())
 	}
-	if op.Class() == asm.ALUClass {
-		m.registers[instr.Dst] &= 0x00000000FFFFFFFF
+}
+
+func (m *Machine) alu32(instr *asm.Instruction) {
+	op := instr.OpCode
+	dst := uint32(m.registers[instr.Dst])
+	value := uint32(m.sourceValue(instr))
+	switch op.ALUOp() {
+	case asm.Add:
+		m.registers[instr.Dst] = uint64(dst + value)
+	case asm.Sub:
+		m.registers[instr.Dst] = uint64(dst - value)
+	case asm.Mul:
+		m.registers[instr.Dst] = uint64(dst * value)
+	case asm.Div:
+		m.registers[instr.Dst] = uint64(dst / value)
+	case asm.Or:
+		m.registers[instr.Dst] = uint64(dst | value)
+	case asm.And:
+		m.registers[instr.Dst] = uint64(dst & value)
+	case asm.LSh:
+		m.registers[instr.Dst] = uint64(dst << value)
+	case asm.RSh:
+		m.registers[instr.Dst] = uint64(dst >> value)
+	case asm.Neg:
+		m.registers[instr.Dst] = uint64(-dst)
+	case asm.Mod:
+		m.registers[instr.Dst] = uint64(dst % value)
+	case asm.Xor:
+		m.registers[instr.Dst] = uint64(dst ^ value)
+	case asm.Mov:
+		m.registers[instr.Dst] = uint64(value)
+	case asm.ArSh:
+		m.registers[instr.Dst] = uint64(int32(dst) >> value)
+	default:
+		panic("unhandled ALUOp: " + op.ALUOp().String())
 	}
 }
 
