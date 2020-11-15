@@ -1,0 +1,2 @@
+cmd/ebpf-capture/ebpf-capture
+progs/*.o
