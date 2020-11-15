@@ -7,12 +7,14 @@ upon github.com/cilium/ebpf library.
 
 An example application (ebpf-capture) captures packets using libpcap
 and runs a eBPF program on each packet to decide whether or not to
-print it.
+print it. 
 
-To build and run:
+To run the example:
 
-  make build
-  make run # (capture packets from 'lo' interface and print all icmp packets)
+  ping 127.0.0.1 > /dev/null & # run ping in background to get some action
+  make run                     # capture packets from 'lo' interface and print all icmp packets
+  ^C
+  kill %1                      # kill ping
 
 This project requires 'clang' and 'libpcap'. If you're using Nix you can build
 and run with: nix-shell --run 'make run'.
