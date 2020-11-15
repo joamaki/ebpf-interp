@@ -1,0 +1,18 @@
+
+Experiments with eBPF
+---------------------
+
+This repository implements a simple eBPF interpreter, building
+upon github.com/cilium/ebpf library.
+
+An example application (ebpf-capture) captures packets using libpcap
+and runs a eBPF program on each packet to decide whether or not to
+print it.
+
+To build and run:
+
+  make build
+  make run # (capture packets from 'lo' interface and print all icmp packets)
+
+This project requires 'clang' and 'libpcap'. If you're using Nix you can build
+and run with: nix-shell --run 'make run'.
