@@ -1,5 +1,6 @@
 #pragma once
 
+typedef unsigned char uint8_t;
 typedef unsigned long uint64_t;
 typedef long int64_t;
 typedef unsigned int uint32_t;
@@ -7,14 +8,14 @@ typedef unsigned short uint16_t;
 
 struct frame {
     uint64_t length;
-    unsigned char data[0];
+    uint8_t data[0];
 };
 
 #define ALEN 6
 struct ethhdr {
-    unsigned char dst[ALEN];
-    unsigned char src[ALEN];
-    unsigned short proto;
+    uint8_t dst[ALEN];
+    uint8_t src[ALEN];
+    uint16_t proto;
 };
 
 #ifdef __LITTLE_ENDIAN__
@@ -26,23 +27,28 @@ struct ethhdr {
 #define HTONL(n) (n)
 #endif
 
-typedef unsigned char __u8;
-typedef unsigned short __be16;
-typedef unsigned short __sum16;
-typedef unsigned int __be32;
 struct iphdr {
-	__u8	ihl:4,
-		version:4;
-	__u8	tos;
-	__be16	tot_len;
-	__be16	id;
-	__be16	frag_off;
-	__u8	ttl;
-	__u8	protocol;
-	__sum16	check;
-	__be32	saddr;
-	__be32	daddr;
-	/*The options start here. */
+	uint8_t version_and_ihl;
+	uint8_t	tos;
+	uint16_t tot_len;
+	uint16_t id;
+	uint16_t frag_off;
+	uint8_t	ttl;
+	uint8_t	protocol;
+	uint16_t check;
+	uint32_t saddr;
+	uint32_t daddr;
+};
+
+struct tcphdr {
+	uint16_t sport;
+	uint16_t dport;
+	uint32_t seq;
+	uint32_t ack_seq;
+	uint16_t flags;
+	uint16_t window;
+	uint16_t csum;
+	uint16_t urg_ptr;
 };
 
 enum {
